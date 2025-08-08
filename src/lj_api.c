@@ -273,6 +273,12 @@ LUA_API int lua_isnumber(lua_State *L, int idx)
   return (tvisnumber(o) || (tvisstr(o) && lj_strscan_number(strV(o), &tmp)));
 }
 
+LUA_API int lua_isinteger(lua_State *L, int idx)
+{
+  cTValue *o = index2adr(L, idx);
+  return LJ_LIKELY(tvisint(o)) || (tvisnum(o) && ((lua_Number)(int32_t)o->n) == o->n);
+}
+
 LUA_API int lua_isstring(lua_State *L, int idx)
 {
   cTValue *o = index2adr(L, idx);
@@ -647,7 +653,7 @@ LUA_API void lua_pushnumber(lua_State *L, lua_Number n)
 
 LUA_API void lua_pushinteger(lua_State *L, lua_Integer n)
 {
-  setintptrV(L->top, n);
+  setintptrV(L->top, (int32_t)n);
   incr_top(L);
 }
 

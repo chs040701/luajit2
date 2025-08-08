@@ -125,6 +125,9 @@
 #define LUA_INTFRMLEN		"l"
 #define LUA_INTFRM_T		long
 
+#define LUA_INTEGER_FRMLEN      "l"
+#define LUA_INTEGER_FMT         "%" LUA_INTEGER_FRMLEN "d"
+
 /* Linkage of public API functions. */
 #if defined(LUA_BUILD_AS_DLL)
 #if defined(LUA_CORE) || defined(LUA_LIB)

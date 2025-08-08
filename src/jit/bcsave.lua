@@ -26,6 +26,7 @@ local tremove, tconcat = table.remove, table.concat
 local function usage()
   io.stderr:write[[
 Save LuaJIT bytecode: luajit -b[options] input output
+Save LuaJIT bytecode: luajit -b[options] pathpattern name output
   -l        Only list bytecode.
   -L        Only list bytecode with lineinfo.
   -s        Strip debug info (default).
@@ -54,7 +55,17 @@ local function check(ok, ...)
   os.exit(1)
 end
 
-local function readfile(ctx, input)
+local function loadfilex(input, name, mode)
+  local file = io.open(input, "r")  -- 打开文件
+  if not file then
+      return nil, "cannot open file: " .. input
+  end
+  local content = file:read("*a")  -- 读取整个文件内容
+  file:close()  -- 关闭文件
+  return loadstring(content, name, mode)  -- 使用 loadstring 加载内容
+end
+
+local function readfile(ctx, input, name)
   if ctx.string then
     return check(loadstring(input, nil, ctx.mode))
   elseif ctx.filename then
@@ -69,7 +80,7 @@ local function readfile(ctx, input)
     return check(load(data, ctx.filename, ctx.mode))
   else
     if input == "-" then input = nil end
-    return check(loadfile(input, ctx.mode))
+    return check(loadfilex(input, name, ctx.mode))
   end
 end
 
@@ -541,8 +552,8 @@ local function bclist(ctx, input, output, lineinfo)
   require("jit.bc").dump(f, savefile(output, "w"), true, lineinfo)
 end
 
-local function bcsave(ctx, input, output)
-  local f = readfile(ctx, input)
+local function bcsave(ctx, input, name, output)
+  local f = readfile(ctx, input, name, input)
   local s = string.dump(f, ctx.mode)
   local t = ctx.type
   if not t then
@@ -552,7 +563,7 @@ local function bcsave(ctx, input, output)
   if t == "raw" then
     bcsave_raw(output, s)
   else
-    if not ctx.modname then ctx.modname = detectmodname(input) end
+    if not ctx.modname then ctx.modname = detectmodname(name) end
     if t == "obj" then
       bcsave_obj(ctx, output, s)
     else
@@ -621,8 +632,13 @@ local function docmd(...)
     if #arg == 0 or #arg > 2 then usage() end
     bclist(ctx, arg[1], arg[2] or "-", lineinfo)
   else
-    if #arg ~= 2 then usage() end
-    bcsave(ctx, arg[1], arg[2])
+    if #arg == 2 then
+      bcsave(ctx, arg[1], arg[1], arg[2])
+    elseif #arg == 3 then
+      bcsave(ctx, string.gsub(arg[1], "?", arg[2], nil, true), arg[2], arg[3])
+    else
+      usage()
+    end
   end
 end
 
